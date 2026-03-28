@@ -4,13 +4,8 @@ import {
   ChevronRight, Minimize2, CheckCircle2, FileDigit, Crop
 } from 'lucide-react';
 
-/**
- * Komponen Utama DOKU.PRO
- * Berfungsi untuk menangkap gambar dari kamera, melakukan cropping,
- * dan menyusunnya menjadi dokumen panjang (Long Strip) dengan kompresi otomatis < 2MB.
- */
 const App = () => {
-  // --- STATE MANAGEMENT ---
+  // --- STATE ---
   const [view, setView] = useState('home'); 
   const [capturedImages, setCapturedImages] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -23,7 +18,6 @@ const App = () => {
   const fileInputRef = useRef(null);
   const cropCanvasRef = useRef(null);
 
-  // --- STYLES (NEO-BRUTALISM) ---
   const styles = {
     card: "bg-white border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8 transition-all",
     button: "border-[4px] border-black font-[1000] uppercase tracking-tighter px-6 py-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2",
@@ -32,9 +26,6 @@ const App = () => {
     navLink: "flex items-center gap-1 font-black uppercase text-xs tracking-widest hover:bg-[#f3ff59] px-3 py-2 border-2 border-transparent hover:border-black transition-all cursor-pointer",
   };
 
-  // --- EFFECTS ---
-  
-  // Menangani rendering pratinjau cropping pada kanvas
   useEffect(() => {
     if (view === 'crop' && editingIndex !== null && cropCanvasRef.current) {
       const canvas = cropCanvasRef.current;
@@ -43,7 +34,6 @@ const App = () => {
       img.onload = () => {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
         const nw = img.width * ratio;
         const nh = img.height * ratio;
@@ -53,7 +43,6 @@ const App = () => {
     }
   }, [view, editingIndex, capturedImages]);
 
-  // --- LOGIKA KAMERA ---
   const startCamera = async () => {
     setView('capture');
     try {
@@ -65,7 +54,7 @@ const App = () => {
         streamRef.current = stream;
       }
     } catch (err) {
-      alert("Akses kamera ditolak. Pastikan web dibuka menggunakan protokol HTTPS.");
+      alert("Akses kamera ditolak. Gunakan HTTPS.");
       setView('home');
     }
   };
@@ -87,7 +76,6 @@ const App = () => {
     setCapturedImages([...capturedImages, canvas.toDataURL('image/jpeg', 0.9)]);
   };
 
-  // --- LOGIKA CROPPING ---
   const handleCropSave = () => {
     const canvas = cropCanvasRef.current;
     if (!canvas) return;
@@ -99,7 +87,6 @@ const App = () => {
     setView('capture');
   };
 
-  // --- ENGINE: GENERASI DOKUMEN PANJANG ---
   const generateDocument = async (format) => {
     setIsProcessing(true);
     stopCamera();
@@ -148,7 +135,6 @@ const App = () => {
       currentY += h;
     });
 
-    // Logika Kompresi Otomatis: Maksimal 2MB
     let quality = 0.9;
     let finalDataUrl = canvas.toDataURL('image/jpeg', quality);
     while ((finalDataUrl.length * 0.75) > 2000000 && quality > 0.1) {
@@ -169,7 +155,7 @@ const App = () => {
     setTimeout(() => {
       setIsProcessing(false);
       setView('result');
-    }, 2000);
+    }, 1500);
   };
 
   const downloadFile = () => {
@@ -189,58 +175,44 @@ const App = () => {
     setView('home');
   };
 
-  // --- KOMPONEN UI ---
-  const Navbar = () => (
-    <nav className="bg-white border-b-[4px] border-black sticky top-0 z-[100]">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+  return (
+    <div className="min-h-screen bg-[#f0f2f5] text-black font-sans selection:bg-[#f3ff59]">
+      <nav className="bg-white border-b-[4px] border-black sticky top-0 z-[100]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={reset}>
             <div className="bg-black p-1.5 border-2 border-black rotate-3">
               <FileText className="text-white w-5 h-5" />
             </div>
             <span className="text-2xl font-[1000] tracking-tighter uppercase italic">DOKU<span className="text-indigo-600">.PRO</span></span>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 border-2 border-black text-[10px] font-black uppercase tracking-widest">
-            <Minimize2 size={14}/> Auto-2MB Ready
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 border-2 border-black text-[10px] font-black uppercase">
+              <Minimize2 size={14}/> Auto-2MB Ready
+            </div>
           </div>
-          <button onClick={() => setView('home')} className="bg-[#f3ff59] border-[3px] border-black px-4 py-2 font-[1000] text-xs uppercase shadow-[3px_3px_0_#000]">
-            Profil
-          </button>
         </div>
-      </div>
-    </nav>
-  );
-
-  return (
-    <div className="min-h-screen bg-[#f0f2f5] text-black font-sans selection:bg-[#f3ff59]">
-      <Navbar />
+      </nav>
 
       <main className="p-4 md:p-12 max-w-5xl mx-auto">
-        
         {view === 'home' && (
-          <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-            <div className="text-center mb-16">
-              <div className="inline-block bg-[#f3ff59] border-[6px] border-black px-10 py-6 shadow-[12px_12px_0px_0px_#000] -rotate-1 mb-8">
-                <h1 className="text-5xl md:text-8xl font-[1000] tracking-tighter uppercase italic leading-[0.85]">
-                  ARSIP PANJANG.<br/>FULL WIDTH.
-                </h1>
-              </div>
-              <p className="max-w-xl mx-auto font-black text-lg md:text-xl uppercase tracking-tight opacity-70 italic leading-tight">
-                Susun dokumen Anda secara vertikal dengan lebar penuh dan otomatis kompres di bawah 2MB.
-              </p>
+          <div className="text-center">
+            <div className="inline-block bg-[#f3ff59] border-[6px] border-black px-10 py-6 shadow-[12px_12px_0px_0px_#000] -rotate-1 mb-8">
+              <h1 className="text-5xl md:text-8xl font-[1000] tracking-tighter uppercase italic leading-[0.85]">
+                ARSIP RAPI.<br/>OPTIMAL.
+              </h1>
             </div>
-
+            <p className="max-w-xl mx-auto font-black text-lg md:text-xl uppercase italic mb-8">
+              Susun dokumen vertikal full width dan otomatis di bawah 2MB.
+            </p>
             <div className={styles.card}>
               <div className="grid md:grid-cols-2 gap-6">
-                <button onClick={startCamera} className={`${styles.button} bg-pink-400 py-12 flex-col group`}>
+                <button onClick={startCamera} className={`${styles.button} bg-pink-400 py-12 flex-col`}>
                   <Camera size={64}/>
-                  <span className="text-2xl mt-4">Jalankan Kamera</span>
+                  <span className="text-2xl mt-4">Kamera</span>
                 </button>
-                <button onClick={() => fileInputRef.current.click()} className={`${styles.button} bg-[#f3ff59] py-12 flex-col group`}>
+                <button onClick={() => fileInputRef.current.click()} className={`${styles.button} bg-[#f3ff59] py-12 flex-col`}>
                   <Upload size={64}/>
-                  <span className="text-2xl mt-4">Import Foto</span>
+                  <span className="text-2xl mt-4">Upload</span>
                 </button>
               </div>
             </div>
@@ -248,93 +220,55 @@ const App = () => {
         )}
 
         {view === 'capture' && (
-          <div className={`${styles.card} animate-in zoom-in-95`}>
-            <div className="flex justify-between items-center mb-6">
-              <span className="font-[1000] uppercase italic text-sm tracking-widest flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse border-2 border-black"></div>
-                Feed Sesi: {capturedImages.length} Foto
-              </span>
-              <button onClick={reset} className="font-black text-xs underline uppercase">Tutup</button>
+          <div className={`${styles.card}`}>
+            <div className="flex justify-between mb-6">
+              <span className="font-black uppercase italic">Sesi: {capturedImages.length} Foto</span>
+              <button onClick={reset} className="font-black underline uppercase">Tutup</button>
             </div>
-
-            <div className="bg-black border-[6px] border-black aspect-video relative mb-8 shadow-[12px_12px_0px_0px_#4f46e5] overflow-hidden">
+            <div className="bg-black border-[6px] border-black aspect-video relative mb-8 overflow-hidden shadow-[12px_12px_0_#4f46e5]">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover grayscale contrast-[1.4]" />
             </div>
-
             <div className="grid grid-cols-2 gap-6 mb-8">
-              <button onClick={takeSnapshot} className={`${styles.button} bg-[#f3ff59] py-8 text-3xl`}>JEPRET!</button>
-              <button 
-                disabled={capturedImages.length === 0} 
-                onClick={() => setView('format')} 
-                className={`${styles.button} bg-[#27d07d] py-8 text-2xl`}
-              >
-                PROSES <ChevronRight size={32}/>
-              </button>
+              <button onClick={takeSnapshot} className={`${styles.button} bg-[#f3ff59] py-8 text-3xl`}>JEPRET</button>
+              <button disabled={capturedImages.length === 0} onClick={() => setView('format')} className={`${styles.button} bg-[#27d07d] py-8 text-2xl`}>PROSES</button>
             </div>
-
-            <div className="border-t-[4px] border-black pt-6">
-              <h3 className="font-black text-xs uppercase mb-4 opacity-50 italic">Buffer (Klik untuk CROP):</h3>
-              <div className="flex gap-4 overflow-x-auto pb-4 custom-scroll">
-                {capturedImages.map((img, i) => (
-                  <div key={i} className="min-w-[120px] h-40 border-[4px] border-black relative bg-gray-100 group cursor-pointer shadow-[4px_4px_0_#000]" onClick={() => { setEditingIndex(i); setView('crop'); }}>
-                    <img src={img} className="w-full h-full object-cover grayscale" alt={`Captured frame ${i + 1}`} />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[#f3ff59] transition-all">
-                      PILIH CROP
-                    </div>
-                    <div className="absolute bottom-0 left-0 bg-black text-white text-[10px] px-2 font-black italic">#{i+1}</div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setCapturedImages(prev => prev.filter((_, idx) => idx !== i)); }}
-                      className="absolute -top-3 -right-3 bg-red-500 text-white border-2 border-black p-1 shadow-[2px_2px_0px_0px_#000]"
-                    >
-                      <X size={14}/>
-                    </button>
-                  </div>
-                ))}
-              </div>
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {capturedImages.map((img, i) => (
+                <div key={i} className="min-w-[120px] h-40 border-4 border-black relative cursor-pointer" onClick={() => { setEditingIndex(i); setView('crop'); }}>
+                  <img src={img} className="w-full h-full object-cover grayscale" alt="Captured thumbnail" />
+                  <div className="absolute bottom-0 left-0 bg-black text-white text-[10px] px-2 font-black italic">#{i+1}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {view === 'crop' && editingIndex !== null && (
           <div className={styles.card}>
-            <h2 className="text-3xl font-[1000] uppercase italic mb-6">Crop Frame #{editingIndex + 1}</h2>
-            <div className="bg-slate-100 border-4 border-black aspect-video relative mb-8 flex items-center justify-center overflow-hidden">
-                <canvas 
-                    ref={cropCanvasRef} 
-                    className="max-w-full max-h-full border-2 border-dashed border-black"
-                    width={800}
-                    height={450}
-                    style={{ background: '#000' }}
-                />
-                <div className="absolute inset-10 border-4 border-[#f3ff59] pointer-events-none border-dashed opacity-50"></div>
+            <h2 className="text-3xl font-black mb-6">CROP FRAME #{editingIndex + 1}</h2>
+            <div className="bg-slate-100 border-4 border-black aspect-video relative mb-8 flex items-center justify-center">
+                <canvas ref={cropCanvasRef} className="max-w-full max-h-full" width={800} height={450} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <button onClick={() => setView('capture')} className={`${styles.button} bg-white`}>Batal</button>
-              <button onClick={handleCropSave} className={`${styles.button} bg-[#27d07d]`}>Simpan Potongan</button>
+              <button onClick={handleCropSave} className={`${styles.button} bg-[#27d07d]`}>Simpan</button>
             </div>
           </div>
         )}
 
         {view === 'format' && (
           <div className={styles.card}>
-            <h2 className="text-4xl font-[1000] uppercase italic mb-10 border-b-[6px] border-black pb-4">Compile Arsip</h2>
+            <h2 className="text-4xl font-black mb-10 border-b-4 border-black pb-4 uppercase">Ekspor</h2>
             <div className="space-y-10">
-              <input 
-                type="text" 
-                placeholder="NAMA_DOKUMEN_ANDA" 
-                className={`${styles.input} text-xl`}
-                onChange={(e) => setFileName(e.target.value)}
-              />
+              <input type="text" placeholder="NAMA_DOKUMEN" className={styles.input} onChange={(e) => setFileName(e.target.value)} />
               <div className="grid md:grid-cols-2 gap-8">
                 <button onClick={() => generateDocument('pdf')} className={`${styles.button} bg-indigo-400 py-12 flex-col`}>
                   <FileDigit size={64}/>
-                  <span className="text-2xl mt-4 font-[1000]">COMPILE PDF</span>
-                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest uppercase">Full Width Strip • Max 2MB</p>
+                  <span className="text-2xl mt-4 font-black">PDF</span>
                 </button>
                 <button onClick={() => generateDocument('jpg')} className={`${styles.button} bg-[#27d07d] py-12 flex-col`}>
                   <ImageIcon size={64}/>
-                  <span className="text-2xl mt-4 font-[1000]">COMPILE JPG</span>
-                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest uppercase">Vertical Layout • Max 2MB</p>
+                  <span className="text-2xl mt-4 font-black">JPG</span>
                 </button>
               </div>
             </div>
@@ -342,63 +276,38 @@ const App = () => {
         )}
 
         {view === 'result' && (
-          <div className={`${styles.card} overflow-hidden`}>
+          <div className={`${styles.card}`}>
             {isProcessing ? (
               <div className="py-24 text-center">
-                <RefreshCw size={100} className="animate-spin text-indigo-600 mx-auto" strokeWidth={4}/>
-                <h2 className="text-4xl font-[1000] uppercase italic mt-8 tracking-tighter">Sedang Menyusun...</h2>
+                <RefreshCw size={100} className="animate-spin text-indigo-600 mx-auto" />
+                <h2 className="text-4xl font-black mt-8">SEDANG MENYUSUN...</h2>
               </div>
             ) : (
-              <div className="animate-in zoom-in-95 duration-500">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-12">
-                  <div className="bg-[#27d07d] border-4 border-black p-6 rotate-3 shadow-[10px_10px_0px_0px_#000]">
-                    <CheckCircle2 size={64} strokeWidth={3}/>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <h2 className="text-6xl font-[1000] uppercase italic tracking-tighter leading-none">BERHASIL!</h2>
-                    <p className="font-bold opacity-40 uppercase tracking-[0.3em] mt-2 italic">Urutan Kronologis 1 s/d {capturedImages.length}</p>
-                  </div>
+              <div className="text-center">
+                <CheckCircle2 size={64} className="mx-auto text-[#27d07d] mb-4" />
+                <h2 className="text-5xl font-black italic mb-8">BERHASIL!</h2>
+                <div className="border-4 border-black p-4 bg-slate-100 mb-8 max-h-[300px] overflow-y-auto">
+                    <img src={finalFile.dataUrl} className="w-full h-auto grayscale" alt="Result preview" />
                 </div>
-
-                <div className="border-[4px] border-black p-4 bg-slate-100 mb-12 shadow-inner h-[400px] overflow-y-auto custom-scroll">
-                    <img src={finalFile.dataUrl} className="w-full h-auto grayscale" alt="Document result preview" />
+                <div className="grid grid-cols-2 gap-4 mb-8 font-black">
+                  <div className="bg-black text-[#f3ff59] p-4 border-2 border-black">{finalFile.size}</div>
+                  <div className="bg-white p-4 border-2 border-black">OPTIMIZED</div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="bg-black text-[#f3ff59] p-4 border-2 border-black font-black uppercase italic">
-                        <span className="text-[10px] opacity-50 block">FINAL_SIZE</span>
-                        {finalFile.size}
-                    </div>
-                    <div className="bg-white p-4 border-2 border-black font-black uppercase italic">
-                        <span className="text-[10px] opacity-30 block">DOC_TYPE</span>
-                        {finalFile.type.split(' ')[0]}
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <button onClick={downloadFile} className={`${styles.button} bg-pink-400 py-10 text-4xl italic shadow-[10px_10px_0_#000]`}>
-                    <Download size={48}/> DOWNLOAD SEKARANG
-                  </button>
-                  <button onClick={reset} className={`${styles.button} bg-black text-white py-4`}>MULAI DOKUMEN BARU</button>
-                </div>
+                <button onClick={downloadFile} className={`${styles.button} bg-pink-400 w-full py-10 text-4xl`}>
+                  <Download size={48}/> DOWNLOAD
+                </button>
+                <button onClick={reset} className="mt-6 font-black uppercase underline">Mulai Baru</button>
               </div>
             )}
           </div>
         )}
-
       </main>
 
-      <footer className="mt-20 py-20 bg-black text-white border-t-[10px] border-[#f3ff59]">
-        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#f3ff59] p-1 border-2 border-black rotate-3"><FileText className="text-black w-5 h-5" /></div>
-            <span className="text-3xl font-[1000] tracking-tighter uppercase italic">DOKU<span className="text-[#f3ff59]">.PRO</span></span>
-          </div>
-          <p className="font-black text-[10px] opacity-30 uppercase tracking-[0.5em] italic">© 2026 DOKU.PRO - OPTIMIZED FOR PRODUCTION</p>
-        </div>
+      <footer className="mt-20 py-20 bg-black text-white border-t-[10px] border-[#f3ff59] text-center">
+        <span className="text-3xl font-[1000] italic uppercase">DOKU<span className="text-[#f3ff59]">.PRO</span></span>
+        <p className="text-[10px] opacity-30 mt-4 uppercase tracking-[0.5em]">© 2026 DOKU.PRO - PRODUCTION READY</p>
       </footer>
 
-      {/* Input File Tersembunyi */}
       <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
@@ -408,13 +317,6 @@ const App = () => {
         });
         if (view === 'home') setView('capture');
       }} />
-
-      <style>{`
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: black; border: 3px solid white; }
-        .custom-scroll { scrollbar-width: thin; scrollbar-color: black transparent; }
-      `}</style>
     </div>
   );
 };

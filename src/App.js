@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Camera, Image as ImageIcon, FileText, Download, X, RefreshCw, Upload, 
-  ChevronRight, Minimize2, CheckCircle2, FileDigit, Crop
+  Minimize2, CheckCircle2, FileDigit
 } from 'lucide-react';
 
+/**
+ * DOKU.PRO - Versi Stabil untuk Produksi (Vercel Ready)
+ */
 const App = () => {
   // --- STATE ---
   const [view, setView] = useState('home'); 
@@ -23,9 +26,9 @@ const App = () => {
     button: "border-[4px] border-black font-[1000] uppercase tracking-tighter px-6 py-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2",
     input: "w-full border-[4px] border-black p-4 font-bold outline-none focus:bg-[#f3ff59] transition-colors placeholder:text-black/30",
     label: "block font-[1000] text-xs uppercase tracking-widest mb-2 italic",
-    navLink: "flex items-center gap-1 font-black uppercase text-xs tracking-widest hover:bg-[#f3ff59] px-3 py-2 border-2 border-transparent hover:border-black transition-all cursor-pointer",
   };
 
+  // --- EFFECTS ---
   useEffect(() => {
     if (view === 'crop' && editingIndex !== null && cropCanvasRef.current) {
       const canvas = cropCanvasRef.current;
@@ -43,6 +46,7 @@ const App = () => {
     }
   }, [view, editingIndex, capturedImages]);
 
+  // --- LOGIC ---
   const startCamera = async () => {
     setView('capture');
     try {
@@ -54,7 +58,7 @@ const App = () => {
         streamRef.current = stream;
       }
     } catch (err) {
-      alert("Akses kamera ditolak. Gunakan HTTPS.");
+      alert("Akses kamera ditolak. Pastikan web dibuka menggunakan HTTPS.");
       setView('home');
     }
   };
@@ -245,7 +249,7 @@ const App = () => {
 
         {view === 'crop' && editingIndex !== null && (
           <div className={styles.card}>
-            <h2 className="text-3xl font-black mb-6">CROP FRAME #{editingIndex + 1}</h2>
+            <h2 className="text-3xl font-black mb-6 uppercase">Crop Frame #{editingIndex + 1}</h2>
             <div className="bg-slate-100 border-4 border-black aspect-video relative mb-8 flex items-center justify-center">
                 <canvas ref={cropCanvasRef} className="max-w-full max-h-full" width={800} height={450} />
             </div>
@@ -291,7 +295,7 @@ const App = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-8 font-black">
                   <div className="bg-black text-[#f3ff59] p-4 border-2 border-black">{finalFile.size}</div>
-                  <div className="bg-white p-4 border-2 border-black">OPTIMIZED</div>
+                  <div className="bg-white p-4 border-2 border-black uppercase italic">Optimized</div>
                 </div>
                 <button onClick={downloadFile} className={`${styles.button} bg-pink-400 w-full py-10 text-4xl`}>
                   <Download size={48}/> DOWNLOAD

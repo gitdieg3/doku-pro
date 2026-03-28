@@ -1,41 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Camera, Image as ImageIcon, FileText, Download, X, RefreshCw, Upload, 
-  ShieldCheck, ChevronRight, Minimize2, Share2, CheckCircle2, Trash2, 
-  Plus, ArrowRight, Zap, Menu, ChevronDown, Scissors, Layers, FileDigit, 
-  Settings, User, LogOut, Search, Globe, HardDrive, Info, CreditCard, QrCode,
-  Crop, Maximize, Move
+  ChevronRight, Minimize2, CheckCircle2, FileDigit, Crop
 } from 'lucide-react';
 
+/**
+ * Komponen Utama DOKU.PRO
+ * Berfungsi untuk menangkap gambar dari kamera, melakukan cropping,
+ * dan menyusunnya menjadi dokumen panjang (Long Strip) dengan kompresi otomatis < 2MB.
+ */
 const App = () => {
-  // --- STATE ---
-  const [view, setView] = useState('home'); // home, capture, crop, format, result
+  // --- STATE MANAGEMENT ---
+  const [view, setView] = useState('home'); 
   const [capturedImages, setCapturedImages] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [finalFile, setFinalFile] = useState({ name: '', size: '', type: '', dataUrl: null });
   const [fileName, setFileName] = useState("");
-  const [activeMenu, setActiveMenu] = useState(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const cropCanvasRef = useRef(null);
 
-  // --- STYLES ---
+  // --- STYLES (NEO-BRUTALISM) ---
   const styles = {
     card: "bg-white border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8 transition-all",
     button: "border-[4px] border-black font-[1000] uppercase tracking-tighter px-6 py-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2",
     input: "w-full border-[4px] border-black p-4 font-bold outline-none focus:bg-[#f3ff59] transition-colors placeholder:text-black/30",
     label: "block font-[1000] text-xs uppercase tracking-widest mb-2 italic",
     navLink: "flex items-center gap-1 font-black uppercase text-xs tracking-widest hover:bg-[#f3ff59] px-3 py-2 border-2 border-transparent hover:border-black transition-all cursor-pointer",
-    dropdownItem: "flex items-center gap-3 p-3 hover:bg-[#f3ff59] border-b-2 border-black last:border-0 font-bold text-xs uppercase transition-colors cursor-pointer"
   };
 
-  // --- TOP-LEVEL EFFECTS ---
+  // --- EFFECTS ---
   
-  // Memperbaiki error ESLint: useEffect harus di tingkat atas
+  // Menangani rendering pratinjau cropping pada kanvas
   useEffect(() => {
     if (view === 'crop' && editingIndex !== null && cropCanvasRef.current) {
       const canvas = cropCanvasRef.current;
@@ -44,7 +43,7 @@ const App = () => {
       img.onload = () => {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Center crop simulation
+        
         const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
         const nw = img.width * ratio;
         const nh = img.height * ratio;
@@ -54,7 +53,7 @@ const App = () => {
     }
   }, [view, editingIndex, capturedImages]);
 
-  // --- CAMERA LOGIC ---
+  // --- LOGIKA KAMERA ---
   const startCamera = async () => {
     setView('capture');
     try {
@@ -66,7 +65,7 @@ const App = () => {
         streamRef.current = stream;
       }
     } catch (err) {
-      alert("Akses kamera ditolak. Silakan gunakan fitur upload.");
+      alert("Akses kamera ditolak. Pastikan web dibuka menggunakan protokol HTTPS.");
       setView('home');
     }
   };
@@ -88,7 +87,7 @@ const App = () => {
     setCapturedImages([...capturedImages, canvas.toDataURL('image/jpeg', 0.9)]);
   };
 
-  // --- CROPPING LOGIC ---
+  // --- LOGIKA CROPPING ---
   const handleCropSave = () => {
     const canvas = cropCanvasRef.current;
     if (!canvas) return;
@@ -100,15 +99,12 @@ const App = () => {
     setView('capture');
   };
 
-  // --- ENGINE: GENERATE HIGH QUALITY LONG PDF ---
+  // --- ENGINE: GENERASI DOKUMEN PANJANG ---
   const generateDocument = async (format) => {
     setIsProcessing(true);
     stopCamera();
 
-    const pageWidth = 1240; // A4 Standard Width
-    const imgWidth = pageWidth;
-
-    // Load images to get their dynamic heights
+    const pageWidth = 1240; 
     const loadedImages = await Promise.all(capturedImages.map(src => {
       return new Promise((resolve) => {
         const img = new Image();
@@ -117,7 +113,6 @@ const App = () => {
       });
     }));
 
-    // Calculate total height based on actual image aspect ratios
     const headerHeight = 200;
     const totalImageHeight = loadedImages.reduce((sum, img) => {
       const ratio = img.height / img.width;
@@ -130,36 +125,30 @@ const App = () => {
     canvas.width = pageWidth;
     canvas.height = canvasHeight;
 
-    // White Background
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, pageWidth, canvasHeight);
 
-    // Modern Header
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, pageWidth, headerHeight);
     ctx.fillStyle = '#f3ff59';
     ctx.font = 'bold 50px Arial';
     ctx.fillText('DOKU.PRO OFFICIAL ARCHIVE', 50, 100);
     ctx.font = '20px Courier';
-    ctx.fillText(`TIMESTAMP: ${new Date().toLocaleString()}`, 50, 150);
+    ctx.fillText(`GENERATED: ${new Date().toLocaleString()}`, 50, 150);
 
-    // Draw images in order - FULL WIDTH
     let currentY = headerHeight;
     loadedImages.forEach((img, i) => {
       const h = pageWidth * (img.height / img.width);
       ctx.drawImage(img, 0, currentY, pageWidth, h);
-      
-      // Index Label Overlay
-      ctx.fillStyle = 'rgba(243, 255, 89, 0.8)';
-      ctx.fillRect(20, currentY + 20, 100, 40);
-      ctx.fillStyle = '#000000';
+      ctx.fillStyle = 'rgba(243, 255, 89, 0.9)';
+      ctx.fillRect(20, currentY + 20, 120, 45);
+      ctx.fillStyle = '#000';
       ctx.font = 'bold 18px Courier';
-      ctx.fillText(`PAGE_${i + 1}`, 35, currentY + 45);
-      
+      ctx.fillText(`HALAMAN_${i + 1}`, 30, currentY + 48);
       currentY += h;
     });
 
-    // Compression Engine (Max 2MB)
+    // Logika Kompresi Otomatis: Maksimal 2MB
     let quality = 0.9;
     let finalDataUrl = canvas.toDataURL('image/jpeg', quality);
     while ((finalDataUrl.length * 0.75) > 2000000 && quality > 0.1) {
@@ -200,7 +189,7 @@ const App = () => {
     setView('home');
   };
 
-  // --- COMPONENTS ---
+  // --- KOMPONEN UI ---
   const Navbar = () => (
     <nav className="bg-white border-b-[4px] border-black sticky top-0 z-[100]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
@@ -211,17 +200,13 @@ const App = () => {
             </div>
             <span className="text-2xl font-[1000] tracking-tighter uppercase italic">DOKU<span className="text-indigo-600">.PRO</span></span>
           </div>
-          <div className="hidden lg:flex items-center gap-2">
-            <button className={styles.navLink}>Alat Kompresi</button>
-            <button className={styles.navLink}>Keamanan</button>
-          </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 border-2 border-black text-[10px] font-black uppercase">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 border-2 border-black text-[10px] font-black uppercase tracking-widest">
             <Minimize2 size={14}/> Auto-2MB Ready
           </div>
           <button onClick={() => setView('home')} className="bg-[#f3ff59] border-[3px] border-black px-4 py-2 font-[1000] text-xs uppercase shadow-[3px_3px_0_#000]">
-            Akun
+            Profil
           </button>
         </div>
       </div>
@@ -234,17 +219,16 @@ const App = () => {
 
       <main className="p-4 md:p-12 max-w-5xl mx-auto">
         
-        {/* VIEW: HOME */}
         {view === 'home' && (
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
             <div className="text-center mb-16">
               <div className="inline-block bg-[#f3ff59] border-[6px] border-black px-10 py-6 shadow-[12px_12px_0px_0px_#000] -rotate-1 mb-8">
                 <h1 className="text-5xl md:text-8xl font-[1000] tracking-tighter uppercase italic leading-[0.85]">
-                  DOKUMEN PANJANG.<br/>HASIL MAKSIMAL.
+                  ARSIP PANJANG.<br/>FULL WIDTH.
                 </h1>
               </div>
-              <p className="max-w-xl mx-auto font-black text-lg md:text-xl uppercase tracking-tight opacity-70 italic">
-                Susun foto berurutan secara vertikal (full width) dan kompres otomatis di bawah 2MB.
+              <p className="max-w-xl mx-auto font-black text-lg md:text-xl uppercase tracking-tight opacity-70 italic leading-tight">
+                Susun dokumen Anda secara vertikal dengan lebar penuh dan otomatis kompres di bawah 2MB.
               </p>
             </div>
 
@@ -252,7 +236,7 @@ const App = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <button onClick={startCamera} className={`${styles.button} bg-pink-400 py-12 flex-col group`}>
                   <Camera size={64}/>
-                  <span className="text-2xl mt-4">Buka Kamera</span>
+                  <span className="text-2xl mt-4">Jalankan Kamera</span>
                 </button>
                 <button onClick={() => fileInputRef.current.click()} className={`${styles.button} bg-[#f3ff59] py-12 flex-col group`}>
                   <Upload size={64}/>
@@ -263,15 +247,14 @@ const App = () => {
           </div>
         )}
 
-        {/* VIEW: CAPTURE */}
         {view === 'capture' && (
           <div className={`${styles.card} animate-in zoom-in-95`}>
             <div className="flex justify-between items-center mb-6">
               <span className="font-[1000] uppercase italic text-sm tracking-widest flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
-                Feed Aktif: {capturedImages.length} Foto
+                <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse border-2 border-black"></div>
+                Feed Sesi: {capturedImages.length} Foto
               </span>
-              <button onClick={reset} className="font-black text-xs underline uppercase">Batal</button>
+              <button onClick={reset} className="font-black text-xs underline uppercase">Tutup</button>
             </div>
 
             <div className="bg-black border-[6px] border-black aspect-video relative mb-8 shadow-[12px_12px_0px_0px_#4f46e5] overflow-hidden">
@@ -290,13 +273,13 @@ const App = () => {
             </div>
 
             <div className="border-t-[4px] border-black pt-6">
-              <h3 className="font-black text-xs uppercase mb-4 opacity-50 italic">Buffer Frame (Klik foto untuk CROP):</h3>
+              <h3 className="font-black text-xs uppercase mb-4 opacity-50 italic">Buffer (Klik untuk CROP):</h3>
               <div className="flex gap-4 overflow-x-auto pb-4 custom-scroll">
                 {capturedImages.map((img, i) => (
                   <div key={i} className="min-w-[120px] h-40 border-[4px] border-black relative bg-gray-100 group cursor-pointer shadow-[4px_4px_0_#000]" onClick={() => { setEditingIndex(i); setView('crop'); }}>
-                    <img src={img} className="w-full h-full object-cover grayscale" />
+                    <img src={img} className="w-full h-full object-cover grayscale" alt={`Captured frame ${i + 1}`} />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[#f3ff59] transition-all">
-                      <Crop size={24}/>
+                      PILIH CROP
                     </div>
                     <div className="absolute bottom-0 left-0 bg-black text-white text-[10px] px-2 font-black italic">#{i+1}</div>
                     <button 
@@ -312,10 +295,9 @@ const App = () => {
           </div>
         )}
 
-        {/* VIEW: CROP */}
         {view === 'crop' && editingIndex !== null && (
           <div className={styles.card}>
-            <h2 className="text-3xl font-[1000] uppercase italic mb-6">Sesuaikan Frame #{editingIndex + 1}</h2>
+            <h2 className="text-3xl font-[1000] uppercase italic mb-6">Crop Frame #{editingIndex + 1}</h2>
             <div className="bg-slate-100 border-4 border-black aspect-video relative mb-8 flex items-center justify-center overflow-hidden">
                 <canvas 
                     ref={cropCanvasRef} 
@@ -324,17 +306,15 @@ const App = () => {
                     height={450}
                     style={{ background: '#000' }}
                 />
-                {/* Visual Cropping Guide */}
                 <div className="absolute inset-10 border-4 border-[#f3ff59] pointer-events-none border-dashed opacity-50"></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <button onClick={() => setView('capture')} className={`${styles.button} bg-white`}>Batal</button>
-              <button onClick={handleCropSave} className={`${styles.button} bg-[#27d07d]`}>Simpan Crop</button>
+              <button onClick={handleCropSave} className={`${styles.button} bg-[#27d07d]`}>Simpan Potongan</button>
             </div>
           </div>
         )}
 
-        {/* VIEW: FORMAT */}
         {view === 'format' && (
           <div className={styles.card}>
             <h2 className="text-4xl font-[1000] uppercase italic mb-10 border-b-[6px] border-black pb-4">Compile Arsip</h2>
@@ -349,25 +329,24 @@ const App = () => {
                 <button onClick={() => generateDocument('pdf')} className={`${styles.button} bg-indigo-400 py-12 flex-col`}>
                   <FileDigit size={64}/>
                   <span className="text-2xl mt-4 font-[1000]">COMPILE PDF</span>
-                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest">REAL LONG FORMAT • MAX 2MB</p>
+                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest uppercase">Full Width Strip • Max 2MB</p>
                 </button>
                 <button onClick={() => generateDocument('jpg')} className={`${styles.button} bg-[#27d07d] py-12 flex-col`}>
                   <ImageIcon size={64}/>
                   <span className="text-2xl mt-4 font-[1000]">COMPILE JPG</span>
-                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest">LONG STRIP IMAGE</p>
+                  <p className="text-[10px] font-bold opacity-70 italic tracking-widest uppercase">Vertical Layout • Max 2MB</p>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* VIEW: RESULT */}
         {view === 'result' && (
           <div className={`${styles.card} overflow-hidden`}>
             {isProcessing ? (
               <div className="py-24 text-center">
                 <RefreshCw size={100} className="animate-spin text-indigo-600 mx-auto" strokeWidth={4}/>
-                <h2 className="text-4xl font-[1000] uppercase italic mt-8">Sedang Menyusun...</h2>
+                <h2 className="text-4xl font-[1000] uppercase italic mt-8 tracking-tighter">Sedang Menyusun...</h2>
               </div>
             ) : (
               <div className="animate-in zoom-in-95 duration-500">
@@ -382,7 +361,7 @@ const App = () => {
                 </div>
 
                 <div className="border-[4px] border-black p-4 bg-slate-100 mb-12 shadow-inner h-[400px] overflow-y-auto custom-scroll">
-                    <img src={finalFile.dataUrl} className="w-full h-auto grayscale" alt="Preview" />
+                    <img src={finalFile.dataUrl} className="w-full h-auto grayscale" alt="Document result preview" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
@@ -398,7 +377,7 @@ const App = () => {
 
                 <div className="flex flex-col gap-4">
                   <button onClick={downloadFile} className={`${styles.button} bg-pink-400 py-10 text-4xl italic shadow-[10px_10px_0_#000]`}>
-                    <Download size={48}/> DOWNLOAD ARSIP
+                    <Download size={48}/> DOWNLOAD SEKARANG
                   </button>
                   <button onClick={reset} className={`${styles.button} bg-black text-white py-4`}>MULAI DOKUMEN BARU</button>
                 </div>
@@ -415,12 +394,11 @@ const App = () => {
             <div className="bg-[#f3ff59] p-1 border-2 border-black rotate-3"><FileText className="text-black w-5 h-5" /></div>
             <span className="text-3xl font-[1000] tracking-tighter uppercase italic">DOKU<span className="text-[#f3ff59]">.PRO</span></span>
           </div>
-          <p className="font-black text-[10px] opacity-30 uppercase tracking-[0.5em] italic">© 2026 DOKU.PRO - HIGH ACCURACY COMPILATION</p>
-          <div className="flex gap-4 opacity-50 grayscale"><Globe/> <Search/> <Settings/></div>
+          <p className="font-black text-[10px] opacity-30 uppercase tracking-[0.5em] italic">© 2026 DOKU.PRO - OPTIMIZED FOR PRODUCTION</p>
         </div>
       </footer>
 
-      {/* Hidden File Input */}
+      {/* Input File Tersembunyi */}
       <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
